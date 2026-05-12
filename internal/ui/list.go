@@ -42,12 +42,12 @@ func renderHeader(selectedCount, totalVisible, totalAll int, width int, sortLabe
 		right = styleDim.Render(fmt.Sprintf("%d/%d", totalVisible, totalAll)) + "  " + right
 	}
 
-	leftW := width - lipgloss.Width(right) - 2
-	if leftW < 10 {
-		leftW = 10
+	left := title + sortInfo
+	gap := width - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 2 {
+		gap = 2
 	}
-	left := lipgloss.NewStyle().Width(leftW).Render(title + sortInfo)
-	return left + "  " + right
+	return left + strings.Repeat(" ", gap) + right
 }
 
 func renderRow(conv store.Conversation, isCursor, isSelected bool, width int) string {
@@ -75,8 +75,7 @@ func renderRow(conv store.Conversation, isCursor, isSelected bool, width int) st
 	}
 	name = truncate(name, nameMax)
 
-	left := lipgloss.NewStyle().Width(leftWidth).MaxWidth(leftWidth).Render(marker + name + "  " + tags)
-	line1 := left + right
+	line1 := lipgloss.NewStyle().Width(leftWidth).MaxWidth(leftWidth).Render(marker + name + "  " + tags) + right
 
 	// Line 2: project path + branch + message count
 	project := conv.ProjectPath
@@ -107,12 +106,11 @@ func renderProjectHeader(filtered, total int, width int) string {
 	if filtered < total {
 		right = styleDim.Render(fmt.Sprintf("%d/%d", filtered, total))
 	}
-	leftW := width - lipgloss.Width(right) - 2
-	if leftW < 10 {
-		leftW = 10
+	gap := width - lipgloss.Width(title) - lipgloss.Width(right)
+	if gap < 2 {
+		gap = 2
 	}
-	left := lipgloss.NewStyle().Width(leftW).Render(title)
-	return left + "  " + right
+	return title + strings.Repeat(" ", gap) + right
 }
 
 func renderProjectRow(pe projectEntry, isCursor bool, width int) string {
@@ -128,8 +126,7 @@ func renderProjectRow(pe projectEntry, isCursor bool, width int) string {
 	name := truncate(pe.ProjectPath, leftWidth-4)
 	count := styleDim.Render(fmt.Sprintf("(%d sessions)", pe.SessionCount))
 
-	left := lipgloss.NewStyle().Width(leftWidth).MaxWidth(leftWidth).Render(name + "  " + count)
-	line1 := left + right
+	line1 := lipgloss.NewStyle().Width(leftWidth).MaxWidth(leftWidth).Render(name + "  " + count) + right
 
 	if isCursor {
 		line1 = styleCursor.Render(line1)

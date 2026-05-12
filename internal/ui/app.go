@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -76,6 +78,10 @@ type Model struct {
 	projectCursor   int
 	projectOffset   int
 	selectedProject string // folder name filter, "" = all
+
+	// Pluggable backends (default to store package)
+	deleteFn func([]store.Conversation) error
+	metaDir  string // directory for meta file
 }
 
 func New() (Model, error) {
@@ -83,7 +89,22 @@ func New() (Model, error) {
 	if err != nil {
 		return Model{}, err
 	}
+	m := newModel(convs)
+	m.deleteFn = store.Delete
+	m.metaDir = store.ClaudeDir()
+	m = m.rebuildFiltered()
+	return m, nil
+}
 
+func NewWithConversations(convs []store.Conversation, metaDir string) (Model, error) {
+	m := newModel(convs)
+	m.deleteFn = store.DeleteFiles
+	m.metaDir = metaDir
+	m = m.rebuildFiltered()
+	return m, nil
+}
+
+func newModel(convs []store.Conversation) Model {
 	search := textinput.New()
 	search.Placeholder = "search…"
 	search.CharLimit = 120
@@ -91,14 +112,19 @@ func New() (Model, error) {
 	edit := textinput.New()
 	edit.CharLimit = 200
 
-	m := Model{
+	return Model{
 		conversations: convs,
 		selected:      map[string]bool{},
 		searchInput:   search,
 		editInput:     edit,
 	}
+}
+
+func (m Model) WithSize(w, h int) Model {
+	m.width = w
+	m.height = h
 	m = m.rebuildFiltered()
-	return m, nil
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -300,7 +326,7 @@ func (m Model) updateConfirming(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "Y":
 		toDelete := m.selectedConversations()
-		if err := store.Delete(toDelete); err != nil {
+		if err := m.deleteFn(toDelete); err != nil {
 			m.err = err
 			m.state = stateList
 			return m, nil
@@ -657,7 +683,15 @@ func (m Model) selectedConversations() []store.Conversation {
 }
 
 func (m Model) saveMeta() {
-	meta, _ := store.LoadMeta()
+	metaPath := m.metaDir + "/claude-manager-meta.json"
+	data, _ := os.ReadFile(metaPath)
+	var meta store.Meta
+	if data != nil {
+		json.Unmarshal(data, &meta)
+	}
+	if meta.Sessions == nil {
+		meta.Sessions = map[string]store.SessionMeta{}
+	}
 	for _, conv := range m.conversations {
 		if conv.CustomName != "" || len(conv.Tags) > 0 {
 			meta.Set(conv.SessionID, store.SessionMeta{
@@ -668,7 +702,10 @@ func (m Model) saveMeta() {
 			meta.Delete(conv.SessionID)
 		}
 	}
-	store.SaveMeta(meta) //nolint:errcheck
+	out, _ := json.MarshalIndent(meta, "", "  ")
+	tmp := metaPath + ".tmp"
+	os.WriteFile(tmp, out, 0644)
+	os.Rename(tmp, metaPath)
 }
 
 func parseTags(s string) []string {

@@ -283,6 +283,15 @@ func parseJSONLFile(path, folderName, projectPath string) (Conversation, error) 
 
 	// IndexPath points to the .jsonl itself when loaded from file scan
 	// (no sessions-index.json exists for this project)
+	firstPrompt = strings.ReplaceAll(firstPrompt, "\n", " ")
+	firstPrompt = strings.ReplaceAll(firstPrompt, "\r", " ")
+
+	// Use filename as fallback SessionID when not found in JSONL
+	if sessionID == "" {
+		sessionID = filepath.Base(path)
+		sessionID = strings.TrimSuffix(sessionID, ".jsonl")
+	}
+
 	return Conversation{
 		SessionID:    sessionID,
 		FullPath:     path,
@@ -410,4 +419,19 @@ func atomicWriteJSON(path string, v any) error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// DeleteFiles deletes the .jsonl files for the given conversations.
+// Used by codex-manager where there is no sessions-index.json to update.
+func DeleteFiles(conversations []Conversation) error {
+	for _, c := range conversations {
+		os.Remove(c.FullPath)
+	}
+	return nil
+}
+
+// CodexDir returns the Codex CLI configuration directory.
+func CodexDir() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".codex")
 }
