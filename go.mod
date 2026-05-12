@@ -1,4 +1,4 @@
-module github.com/peravit/claude-manager
+module github.com/peravit/claude-session-managers
 
 go 1.22
 

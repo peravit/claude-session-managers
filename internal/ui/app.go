@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/peravit/claude-manager/internal/store"
+	"github.com/peravit/claude-session-managers/internal/store"
 )
 
 type sortMode int

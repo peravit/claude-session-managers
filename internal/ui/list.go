@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/peravit/claude-manager/internal/store"
+	"github.com/peravit/claude-session-managers/internal/store"
 )
 
 var (

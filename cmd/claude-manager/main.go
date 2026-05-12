@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/peravit/claude-manager/internal/ui"
+	"github.com/peravit/claude-session-managers/internal/ui"
 )
 
 var version = "dev"
